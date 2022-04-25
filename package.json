@@ -13,15 +13,29 @@
   "devDependencies": {
     "@types/jest": "^26.0.10",
     "@types/node": "10.17.27",
+    "archiver": "^5.3.1",
+    "aws-cdk": "2.20.0",
     "jest": "^26.4.2",
     "ts-jest": "^26.2.0",
-    "aws-cdk": "2.20.0",
     "ts-node": "^9.0.0",
     "typescript": "~3.9.7"
   },
   "dependencies": {
+    "@aws-cdk/aws-s3": "^1.152.0",
+    "@aws-cdk/aws-s3-notifications": "^1.152.0",
+    "@aws-cdk/aws-sns": "^1.152.0",
+    "@aws-cdk/aws-sns-subscriptions": "^1.152.0",
     "aws-cdk-lib": "2.20.0",
+    "aws-sdk": "^2.1113.0",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.16"
-  }
+  },
+  "description": "This is a blank project for TypeScript development with CDK.",
+  "main": "jest.config.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "author": "",
+  "license": "ISC"
 }
