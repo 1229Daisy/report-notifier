@@ -15,7 +15,7 @@ export class ReportNotifierStack extends Stack {
         const sns_topic = new Topic(this, 'epi_reports_topic',);
         console.log(__dirname);
 
-        const config = JSON.parse(readFileSync(__dirname+"/config.json").toString());
+        const config = JSON.parse(readFileSync(__dirname+"/../config/config.json").toString());
         config['subscribers'].forEach((subscriber: any) => {
             const emailFilter={
                 "send_to":SubscriptionFilter.stringFilter({
