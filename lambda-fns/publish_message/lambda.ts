@@ -30,21 +30,21 @@ exports.handler = async function(event:any) {
     let s3 = new AWS.S3();
     let params = {
         Bucket: bucketName,
+        CopySource: bucketName + '/' + key,
         Key: key,
         Metadata: {
             "subscribers": JSON.stringify(emails)
         }
     };
 
-
-
-    s3.putObject(params, function(err: AWSError, data: any) {
+    s3.copyObject(params, function(err:AWSError, data:any) {
         if (err) {
             console.log(err, err.stack);
         } else {
             console.log(data);
         }
     });
+
 
 
 }
