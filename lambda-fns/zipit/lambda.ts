@@ -12,6 +12,8 @@ import { Tag, Tags } from "aws-cdk-lib";
 let bucketName = process.env.BUCKET_NAME;
 let zipBucketName = process.env.ZIP_BUCKET_NAME ||'';   // optional
 let email_address = process.env.emailAddresses ||''
+let subscribers = process.env.SUBSCRIBERS || ''
+let subscribersArr = JSON.parse(subscribers)
 
 type S3DownloadStreamDetails = { stream: Readable; filename: string };
 
@@ -30,6 +32,8 @@ exports.handler = async function (event: any) {
             return;
         }
     });
+
+
 
     const streamPassThrough = new Stream.PassThrough();
     const params: PutObjectRequest = {
