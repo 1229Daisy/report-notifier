@@ -37,11 +37,8 @@ export class ReportNotifierStack extends Stack {
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-
-
-
         const zipit_lambda = new Function(this, 'zipit_lambda', {
-            runtime: Runtime.NODEJS_12_X,
+            runtime: Runtime.NODEJS_14_X,
             code: Code.fromAsset('lambda-fns/zipit'),
             handler: 'lambda.handler',
             environment: {
@@ -59,29 +56,13 @@ export class ReportNotifierStack extends Stack {
         sns_topic.grantPublish(zipit_lambda);
 
 
-        reports_bucket.addEventNotification(
-            EventType.OBJECT_CREATED,
-            new LambdaDestination(zipit_lambda)
-        );
         //add permission to read from reports_bucket to zipit_lambda
         reports_bucket.grantRead(zipit_lambda);
         reports_zip_bucket.grantReadWrite(zipit_lambda)
 
-        // const emailAddress = new CfnParameter(this, 'emailAddress', {
-        //     type: 'String',
-        //     default: '2517022100@qq.com',
-        //     description: 'Email address to send reports to',
-        // });
-        // console.log('emailAddress', emailAddress.valueAsString);
-        // sns_topic.addSubscription(new aws_sns_subscriptions.EmailSubscription(emailAddress.valueAsString));
 
-
-   
-
-
-        //create Lambda to listen to reports_bucket
         const publish_message = new Function(this, 'publish_message', {
-            runtime: Runtime.NODEJS_12_X,
+            runtime: Runtime.NODEJS_14_X,
             code: Code.fromAsset('lambda-fns/publish_message'),
             handler: 'lambda.handler',
             environment: {
@@ -99,8 +80,6 @@ export class ReportNotifierStack extends Stack {
             EventType.OBJECT_CREATED,
             new LambdaDestination(publish_message)
         );
-
-
 
 
     }

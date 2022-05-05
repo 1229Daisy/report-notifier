@@ -5,6 +5,7 @@
       "**"
     ],
     "exclude": [
+      "test_data/**",
       "README.md",
       "cdk*.json",
       "**/*.d.ts",
