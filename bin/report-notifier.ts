@@ -4,7 +4,7 @@ import * as cdk from 'aws-cdk-lib';
 import { ReportNotifierStack} from '../lib/report-notifier-stack';
 
 const app = new cdk.App();
-new ReportNotifierStack(app, 'ReportNotifierStack', {
+new ReportNotifierStack(app, 'ReportNotifierStackTest', {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */
