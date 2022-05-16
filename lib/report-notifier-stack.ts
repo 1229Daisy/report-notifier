@@ -63,8 +63,11 @@ export class ReportNotifierStack extends Stack {
             EventType.OBJECT_CREATED,
             new LambdaDestination(zipit_lambda)
         );
+
+     
         //add permission to read from reports_bucket to zipit_lambda
         reports_bucket.grantRead(zipit_lambda);
+        
         reports_zip_bucket.grantReadWrite(zipit_lambda)
 
         // const emailAddress = new CfnParameter(this, 'emailAddress', {
@@ -92,16 +95,13 @@ export class ReportNotifierStack extends Stack {
             timeout: Duration.seconds(300),
             memorySize: 1024,
         });
-        reports_bucket.grantReadWrite(publish_message);
-
+        // reports_zip_bucket.grantReadWrite(publish_message);
+        reports_bucket.grantReadWrite(publish_message)
         //listen publish message to reports_zip_bucket
-        reports_bucket.addEventNotification(
+        reports_zip_bucket.addEventNotification(
             EventType.OBJECT_CREATED,
             new LambdaDestination(publish_message)
         );
-
-
-
 
     }
 }

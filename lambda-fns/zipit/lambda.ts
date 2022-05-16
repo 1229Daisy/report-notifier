@@ -8,13 +8,15 @@ import {Readable, Stream} from 'stream';
 import * as AWS from 'aws-sdk';
 import {applyDefaultRotationOptions} from "aws-cdk-lib/aws-rds/lib/private/util";
 import { Tag, Tags } from "aws-cdk-lib";
-
-let bucketName = process.env.BUCKET_NAME;
+let bucketName = process.env.BUCKET_NAME; 
 let zipBucketName = process.env.ZIP_BUCKET_NAME ||'';   // optional
-let email_address = process.env.emailAddresses ||''
 let subscribers = process.env.SUBSCRIBERS || ''
 let subscribersArr = JSON.parse(subscribers)
-
+// let SUBSCRIBERS:any   = process.env.SUBSCRIBERS || [];
+let emails:any=[]
+for (let i in subscribersArr) {
+    emails.add(subscribersArr.get(i)['email']);
+}
 type S3DownloadStreamDetails = { stream: Readable; filename: string };
 
 exports.handler = async function (event: any) {
@@ -43,8 +45,10 @@ exports.handler = async function (event: any) {
         ContentType: 'application/zip',
         Key: 'archived_' + Date.now() + '.zip',
         StorageClass: 'STANDARD_IA', // Or as appropriate
-        Metadata:{'email':"1729828003@qq.com"}
+        Metadata:{"subscribers": `${JSON.stringify(emails)}`}
+
     };
+    
     const s3Upload = s3.upload(params, (error: Error): void => {
         if (error) {
             console.error(`Got error creating stream to s3 ${error.name} ${error.message} ${error.stack}`);
@@ -98,7 +102,7 @@ exports.handler = async function (event: any) {
             aps: {
                 alert: {
                     title: 'Report Notification',
-                    body: `open file password : ${Password}`,
+                    body: "Report is ready for download",
                 },
             },
         },
@@ -106,7 +110,8 @@ exports.handler = async function (event: any) {
     const paramsSns = {
         Message: JSON.stringify(message),
         Subject: 'Report Notification',
-        TopicArn: process.env.TOPIC_ARN
+        TopicArn: process.env.TOPIC_ARN,
+        MessageAttributes:{"send_to":emails}
     };
 
     await sns.publish(paramsSns).promise();
