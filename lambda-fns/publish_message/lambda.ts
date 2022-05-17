@@ -31,26 +31,38 @@ exports.handler = async function(event:any) {
     let bucketName = s3Event.bucket.name;
 
     let key = s3Event.object.key;
+    let metadata=s3Event.object.metadata
+    let email=metadata.email
 
-    //update s3 object with metadata
-    let s3 = new AWS.S3();
-    let params = {
+
+    //create presigned url for zip file
+    const url = s3.getSignedUrl('getObject', {
         Bucket: bucketName,
-        CopySource: bucketName + '/' + key,
         Key: key,
-        Metadata: {
-            "subscribers": `${JSON.stringify(emails)}`
-            // "subscribers":"xxxx@qq.com"
-        }
-    };
-    console.log(JSON.stringify(emails))
-    s3.copyObject(params, function(err:AWSError, data:any) {
-        if (err) {
-            console.log(err, err.stack);
-        } else {
-            console.log(data);
-        }
+        Expires: 60 * 60 * 24,
     });
+    //send message to sns  with url
+
+    const sns = new AWS.SNS();
+    const message = {
+        default: url,
+        APNS: {
+            aps: {
+                alert: {
+                    title: 'Report Notification',
+                    body: "Report is ready for download",
+                },
+            },
+        },
+    };
+    const paramsSns = {
+        Message: JSON.stringify(message),
+        Subject: 'Report Notification',
+        TopicArn: process.env.TOPIC_ARN,
+        MessageAttributes:{"send_to":email}
+    };
+
+    await sns.publish(paramsSns).promise();
 
 
 

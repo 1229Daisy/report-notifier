@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
+const epiAppConfig = require("../config/config.json");
 import { ReportNotifierStack} from '../lib/report-notifier-stack';
 
+
+
 const app = new cdk.App();
-new ReportNotifierStack(app, 'ReportNotifierStackTest', {
+new ReportNotifierStack(app, 'ReportNotifierStackTest', { epiAppConfig: epiAppConfig
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */

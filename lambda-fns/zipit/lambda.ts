@@ -1,27 +1,43 @@
-const archiver = require('archiver');
-// register format for archiver
-// note: only do it once per Node.js process/application, as duplicate registration will throw an error
-archiver.registerFormat('zip-encrypted', require("archiver-zip-encrypted"));
 import {PutObjectRequest} from "aws-sdk/clients/s3";
-import {createReadStream} from 'fs';
-import {Readable, Stream} from 'stream';
+
+export {}
+const archiver = require('archiver');
 import * as AWS from 'aws-sdk';
-import {applyDefaultRotationOptions} from "aws-cdk-lib/aws-rds/lib/private/util";
-import { Tag, Tags } from "aws-cdk-lib";
+import {Readable, Stream} from 'stream';
+
+archiver.registerFormat('zip-encrypted', require("archiver-zip-encrypted"));
+
 let bucketName = process.env.BUCKET_NAME; 
 let zipBucketName = process.env.ZIP_BUCKET_NAME ||'';   // optional
 let subscribers = process.env.SUBSCRIBERS || ''
 let subscribersArr = JSON.parse(subscribers)
+let EMAIL_SETTINGS = JSON.parse(process.env.EMAIL_SETTINGS || '')
+let LABELED_REPORTS_PREFIX = process.env.LABELED_REPORTS_PREFIX || '';
 // let SUBSCRIBERS:any   = process.env.SUBSCRIBERS || [];
-let emails:any=[]
-for (let i in subscribersArr) {
-    emails.add(subscribersArr.get(i)['email']);
+let mailMap:any = {};
+let emails:any=subscribersArr.map((subscriber:any)=>{
+    mailMap[subscriber.email] = subscriber
 }
+)
 type S3DownloadStreamDetails = { stream: Readable; filename: string };
 
 exports.handler = async function (event: any) {
     const s3 = new AWS.S3();
     //get contents of s3 object and zip it
+    let s3Event = event.Records[0].s3;
+    console.log('s3Event:', JSON.stringify(s3Event))
+    let key = s3Event.object.key;
+    let key_arr= key.split('/');
+    let email='',report_type='';
+    let email_key=key_arr[0]==LABELED_REPORTS_PREFIX?key_arr[1]:''
+    if (email_key) {
+        email = EMAIL_SETTINGS[email_key]['email']
+    }else{
+        console.error('email_key not found')
+        return
+    }
+
+
     const s3DownloadStreams: S3DownloadStreamDetails[] = event.Records.map((rec: any) => {
         let bucket = rec.s3.bucket.name
         let key = rec.s3.object.key
@@ -45,7 +61,7 @@ exports.handler = async function (event: any) {
         ContentType: 'application/zip',
         Key: 'archived_' + Date.now() + '.zip',
         StorageClass: 'STANDARD_IA', // Or as appropriate
-        Metadata:{"subscribers": `${JSON.stringify(emails)}`}
+        Metadata:{"subscribers": `${email}`}
 
     };
     
@@ -56,9 +72,9 @@ exports.handler = async function (event: any) {
         }
     });
     s3Upload.on('httpUploadProgress', (progress: any): void => {
-        console.log(progress); // { loaded: 4915, total: 192915, part: 1, key: 'foo.jpg' }
+        console.log(progress);
     });
-    const Password = Math.random().toFixed(6).slice(-6)
+    const Password = EMAIL_SETTINGS[email_key]['password'];
     console.info(Password)
     const archive = archiver('zip-encrypted',   {
         zlib: {
@@ -87,34 +103,14 @@ exports.handler = async function (event: any) {
     });
 
 
-    await s3Upload.promise();
-    //create presigned url for zip file
-    const url = s3.getSignedUrl('getObject', {
-        Bucket: zipBucketName,
-        Key: params.Key,
-        Expires: 60 * 60 * 24,
-    });
-    //send message to sns  with url
-    const sns = new AWS.SNS();
-    const message = {
-        default: url,
-        APNS: {
-            aps: {
-                alert: {
-                    title: 'Report Notification',
-                    body: "Report is ready for download",
-                },
-            },
-        },
-    };
-    const paramsSns = {
-        Message: JSON.stringify(message),
-        Subject: 'Report Notification',
-        TopicArn: process.env.TOPIC_ARN,
-        MessageAttributes:{"send_to":emails}
-    };
+    await s3Upload.promise().then((data: any) => {
+        console.log(data)
 
-    await sns.publish(paramsSns).promise();
+    }).catch((error: any) => {
+            console.error(error)}
+    );
+
+
 
 
     console.log('Upload complete');
