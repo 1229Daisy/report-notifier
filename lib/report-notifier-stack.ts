@@ -59,6 +59,7 @@ export class ReportNotifierStack extends Stack {
             code: Code.fromAsset('lambda-fns/zipit'),
             handler: 'lambda.handler',
             environment: {
+                SNS_TOPIC_ARN: sns_topic.topicArn,
                 BUCKET_NAME: reports_bucket.bucketName,
                 ZIP_BUCKET_NAME: reports_zip_bucket.bucketName,
                 SUBSCRIBERS: JSON.stringify(config['subscribers']),
@@ -71,6 +72,7 @@ export class ReportNotifierStack extends Stack {
             layers: [zipit_layer],
 
         });
+        sns_topic.grantPublish(zipit_lambda);
 
 
      

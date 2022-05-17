@@ -14,6 +14,7 @@ let subscribersArr = JSON.parse(subscribers)
 let EMAIL_SETTINGS = JSON.parse(process.env.EMAIL_SETTINGS || '')
 let LABELED_REPORTS_PREFIX = process.env.LABELED_REPORTS_PREFIX || '';
 // let SUBSCRIBERS:any   = process.env.SUBSCRIBERS || [];
+let sns_topic_arn = process.env.SNS_TOPIC_ARN || '';
 let mailMap:any = {};
 let emails:any=subscribersArr.map((subscriber:any)=>{
     mailMap[subscriber.email] = subscriber
@@ -22,7 +23,9 @@ let emails:any=subscribersArr.map((subscriber:any)=>{
 type S3DownloadStreamDetails = { stream: Readable; filename: string };
 
 exports.handler = async function (event: any) {
+    console.log('EMAIL_SETTINGS', JSON.stringify(EMAIL_SETTINGS))
     const s3 = new AWS.S3();
+    const sns = new AWS.SNS();
     //get contents of s3 object and zip it
     let s3Event = event.Records[0].s3;
     console.log('s3Event:', JSON.stringify(s3Event))
@@ -30,6 +33,7 @@ exports.handler = async function (event: any) {
     let key_arr= key.split('/');
     let email='',report_type='';
     let email_key=key_arr[0]==LABELED_REPORTS_PREFIX?key_arr[1]:''
+    console.log('email_key:', email_key)
     if (email_key) {
         email = EMAIL_SETTINGS[email_key]['email']
     }else{
@@ -103,8 +107,55 @@ exports.handler = async function (event: any) {
     });
 
 
-    await s3Upload.promise().then((data: any) => {
+    await s3Upload.promise().then(async (data: any) => {
         console.log(data)
+        //sns publish with filtered emails
+
+        const emailParams01 = {
+            Message: "Download link: https://s3.amazonaws.com/" + zipBucketName + "/" + params.Key,
+            Subject: "get report:" + key,
+            TopicArn: sns_topic_arn,
+            MessageAttributes: {
+                send_to: {
+                    DataType: "String",
+                    StringValue: email
+                }
+            }
+        };
+
+        //create presigned url for zip file
+        const url = s3.getSignedUrl('getObject', {
+            Bucket: zipBucketName,
+            Key: params.Key,
+            Expires: 60 * 60 * 24,
+        });
+        //send message to sns  with url
+
+        const message = "Dear " +
+            EMAIL_SETTINGS[email_key]['name']+
+            "\n\n" +
+            "Your report is ready for download. Please click the link below to download your report. \n\n" +
+
+            url+"\n\n";
+
+        const paramsSns = {
+            Message: message,
+            Subject: 'Report Notification',
+            TopicArn: sns_topic_arn,
+            MessageAttributes: {
+                send_to: {
+                    DataType: "String",
+                    StringValue: email
+                }
+            }
+        };
+        console.log('sns params:', JSON.stringify(paramsSns))
+
+        await sns.publish(paramsSns).promise().then((data: any) => {
+            console.log(data)
+        }).catch((error: any) => {
+            console.error(error)
+        });
 
     }).catch((error: any) => {
             console.error(error)}
